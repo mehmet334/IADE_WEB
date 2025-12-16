@@ -1,39 +1,14 @@
 import { useState } from "react";
 import ReturnDetail from "./ReturnDetail";
 
-/* ================= MOCK DATABASE ================= */
-const mockReturnRequests = [
-  {
-    requestNo: "IADE-2025-0001",
-    requestDate: "2025-01-10",
-    customerCode: "MUS001",
-    status: "OPEN",
-    totalGross: 13750
-  },
-  {
-    requestNo: "IADE-2025-0002",
-    requestDate: "2025-01-05",
-    customerCode: "MUS002",
-    status: "CLOSED",
-    totalGross: 8200
-  },
-  {
-    requestNo: "IADE-2024-0123",
-    requestDate: "2024-12-18",
-    customerCode: "MUS001",
-    status: "OPEN",
-    totalGross: 4500
-  }
-];
-
-export default function ReturnQuery() {
+export default function ReturnQuery({ returnRequests }) {
   /* ================= INITIAL STATE ================= */
 
-  const initialOpenReturns = mockReturnRequests.filter(
+  const initialOpenReturns = returnRequests.filter(
     r => r.status === "OPEN"
   );
 
-  const [mode, setMode] = useState("OPEN");
+  const [mode, setMode] = useState("OPEN"); // OPEN | MONTH
   const [selectedMonth, setSelectedMonth] = useState("");
   const [results, setResults] = useState(initialOpenReturns);
   const [selectedReturn, setSelectedReturn] = useState(null);
@@ -42,7 +17,7 @@ export default function ReturnQuery() {
 
   const handleOpenReturns = () => {
     setMode("OPEN");
-    setResults(mockReturnRequests.filter(r => r.status === "OPEN"));
+    setResults(returnRequests.filter(r => r.status === "OPEN"));
   };
 
   const handleMonthlyReturns = () => {
@@ -53,7 +28,7 @@ export default function ReturnQuery() {
 
     setMode("MONTH");
     setResults(
-      mockReturnRequests.filter(r =>
+      returnRequests.filter(r =>
         r.requestDate.startsWith(selectedMonth)
       )
     );
@@ -90,7 +65,7 @@ export default function ReturnQuery() {
 
       <hr />
 
-      {/* -------- DETAY EKRANI -------- */}
+      {/* -------- DETAY -------- */}
       {selectedReturn && (
         <ReturnDetail
           data={selectedReturn}
@@ -129,7 +104,7 @@ export default function ReturnQuery() {
                 <td>{r.customerCode}</td>
                 <td>{r.status === "OPEN" ? "Açık" : "Kapalı"}</td>
                 <td style={{ textAlign: "right" }}>
-                  {r.totalGross.toFixed(2)}
+                  {(r.totalGross || 0).toFixed(2)}
                 </td>
               </tr>
             ))}

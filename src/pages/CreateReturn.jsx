@@ -1,12 +1,7 @@
 import { useState } from "react";
 import ReturnItemRow from "../components/ReturnItemRow";
 
-/* MOCK DATABASE */
-const currentUser = {
-  username: "mehmet.tezcan",
-  fullName: "Mehmet Ali Tezcan",
-  department: "Ticari Operasyonlar"
-};
+/* ================= MOCK DATABASE ================= */
 const mockSalesDb = [
   {
     productCode: "URUN001",
@@ -25,38 +20,42 @@ const mockBatchDb = [
   },
 ];
 
+/* ================= HELPERS ================= */
 const diffInMonths = (start, end) => {
   const s = new Date(start);
   const e = new Date(end);
   return (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth());
 };
 
-export default function CreateReturn({ products, customers, returnReasons }) {
+/* ================= COMPONENT ================= */
+export default function CreateReturn({
+  products,
+  customers,
+  returnReasons,
+  onContinue,
+}) {
+  /* -------- STATE -------- */
   const [customer, setCustomer] = useState("");
   const [reason, setReason] = useState("");
-  const [items, setItems] = useState([{ product: "", lot: "", quantity: "" }]);
+
+  const [items, setItems] = useState([
+    {
+      product: "",
+      lot: "",
+      quantity: "",
+      note: "",
+    },
+  ]);
 
   const [checked, setChecked] = useState(false);
   const [checkResults, setCheckResults] = useState([]);
-  const [showSummary, setShowSummary] = useState(false);
 
-  /* ---------------- HELPERS ---------------- */
-
-  const calculateLine = (qty, price, vatRate) => {
-    const net = qty * price;
-    const vat = net * (vatRate / 100);
-    const gross = net + vat;
-    return { net, vat, gross };
-  };
-    const generateRequestNo = () => {
-    const year = new Date().getFullYear();
-    const random = Math.floor(100000 + Math.random() * 900000);
-    return `IADE-${year}-${random}`;
-    };
-  /* ---------------- ITEM HANDLERS ---------------- */
-
+  /* -------- ITEM ACTIONS -------- */
   const addItem = () => {
-    setItems([...items, { product: "", lot: "", quantity: "" }]);
+    setItems([
+      ...items,
+      { product: "", lot: "", quantity: "", note: "" },
+    ]);
     setChecked(false);
     setCheckResults([]);
   };
@@ -65,6 +64,7 @@ export default function CreateReturn({ products, customers, returnReasons }) {
     const updated = [...items];
     updated[index][field] = value;
     setItems(updated);
+
     setChecked(false);
     setCheckResults([]);
   };
@@ -75,55 +75,61 @@ export default function CreateReturn({ products, customers, returnReasons }) {
     setCheckResults(updated);
   };
 
-  /* ---------------- ACTIONS ---------------- */
-
+  /* -------- KONTROL ET -------- */
   const handleCheck = () => {
     if (!customer || !reason) {
-      alert("Önce müşteri ve iade sebebi seçilmelidir");
+      alert("Müşteri ve iade sebebi seçilmelidir.");
       return;
     }
 
     const results = items.map((item) => {
       const sale = mockSalesDb.find(
-        (s) => s.productCode === item.product && s.customerCode === customer
+        (s) =>
+          s.productCode === item.product &&
+          s.customerCode === customer
       );
 
       const batch = mockBatchDb.find(
-        (b) => b.productCode === item.product && b.lot === item.lot
+        (b) =>
+          b.productCode === item.product &&
+          b.lot === item.lot
       );
 
-      let message = [];
+      let messages = [];
       let approvalRequired = false;
 
       if (sale) {
-        message.push(
-          `En son ${new Date(sale.lastSaleDate).toLocaleDateString(
-            "tr-TR"
-          )} tarihinde ${sale.price} ${sale.currency} fiyat ile satılmıştır.`
+        messages.push(
+          `En son ${new Date(
+            sale.lastSaleDate
+          ).toLocaleDateString("tr-TR")} tarihinde ${sale.price} ${sale.currency} fiyat ile satılmıştır.`
         );
       } else {
-        message.push("Daha önce satış bulunamadı.");
+        messages.push("Daha önce satış bulunamadı.");
         approvalRequired = true;
       }
 
       if (sale && batch) {
         const diff = diffInMonths(batch.skt, sale.lastSaleDate);
         if (diff < 12) {
-          message.push(
-            `Parti SKT’si ${new Date(batch.skt).toLocaleDateString(
-              "tr-TR"
-            )} olup 1 yılın altında iken satış yapılmıştır.`
+          messages.push(
+            `Parti SKT’si ${new Date(
+              batch.skt
+            ).toLocaleDateString("tr-TR")} olup 1 yılın altında iken satış yapılmıştır.`
           );
           approvalRequired = true;
         }
       }
 
       return {
-        message,
+        messages,
+        lastSalePrice: sale?.price || "",
+        currency: sale?.currency || "TRY",
+        newPrice: sale?.price || "",
+        vatRate: 10,
+        decision: "ACCEPT", // ACCEPT | REJECT
+        rejectNote: "",
         approvalRequired,
-        newPrice: "",
-        priceApproved: !approvalRequired,
-        lastSalePrice: sale?.price || 0,
       };
     });
 
@@ -131,146 +137,33 @@ export default function CreateReturn({ products, customers, returnReasons }) {
     setChecked(true);
   };
 
-  const handleEdit = () => {
-    setChecked(false);
-    setCheckResults([]);
-  };
+  /* -------- DEVAM ET -------- */
+const handleContinue = () => {
+  console.log("DEVAM ET TIKLANDI");
 
-  const allApproved =
-    checked && checkResults.every((r) => r.priceApproved === true);
-
-  const handleSave = () => {
-    if (!allApproved) {
-      alert("Tüm satırlar onaylanmalıdır");
-      return;
-    }
-    setShowSummary(true);
-  };
-
-  /* ---------------- SUMMARY SCREEN ---------------- */
-
-  if (showSummary) {
-    const summaryLines = items.map((item, i) => {
-      const price =
-        Number(checkResults[i]?.newPrice) ||
-        Number(checkResults[i]?.lastSalePrice) ||
-        0;
-
-      const qty = Number(item.quantity);
-      const vatRate = 10;
-
-      const { net, vat, gross } = calculateLine(qty, price, vatRate);
-
-      return {
-        ...item,
-        price,
-        vatRate,
-        net,
-        vat,
-        gross,
-      };
-    });
-
-    const totalNet = summaryLines.reduce((s, l) => s + l.net, 0);
-    const totalVat = summaryLines.reduce((s, l) => s + l.vat, 0);
-    const totalGross = summaryLines.reduce((s, l) => s + l.gross, 0);
-
-    return (
-      <>
-        <h2>İade Talebi Özeti</h2>
-
-        <strong>Müşteri:</strong> {customer}
-
-        <table border="1" cellPadding="6" width="100%" style={{ marginTop: 10 }}>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Ürün</th>
-              <th>Parti</th>
-              <th>Adet</th>
-              <th>Fiyat</th>
-              <th>KDV %</th>
-              <th>KDV’siz Tutar</th>
-            </tr>
-          </thead>
-          <tbody>
-            {summaryLines.map((l, i) => (
-              <tr key={i}>
-                <td>{i + 1}</td>
-                <td>{l.product}</td>
-                <td>{l.lot}</td>
-                <td>{l.quantity}</td>
-                <td>{l.price.toFixed(2)}</td>
-                <td>{l.vatRate}</td>
-                <td>{l.net.toFixed(2)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div style={{ marginTop: 20, width: 300, marginLeft: "auto" }}>
-          <div>Toplam KDV’siz: {totalNet.toFixed(2)}</div>
-          <div>Toplam KDV: {totalVat.toFixed(2)}</div>
-          <strong>Toplam KDV’li: {totalGross.toFixed(2)}</strong>
-        </div>
-
-        <div style={{ marginTop: 20 }}>
-          <button onClick={() => setShowSummary(false)}>Geri Dön</button>
-<button
-  style={{ marginLeft: 10 }}
-  onClick={() => {
-    const requestNo = generateRequestNo();
-    const requestDate = new Date().toISOString();
-
-    const payload = {
-      requestNo,
-      requestDate,
-      status: "OPEN",
-      createdBy: currentUser,
-      customerCode: customer,
-      returnReasonId: Number(reason),
-      totals: {
-        net: totalNet,
-        vat: totalVat,
-        gross: totalGross
-      },
-      lines: summaryLines.map((l, i) => ({
-        productCode: l.product,
-        lot: l.lot,
-        quantity: Number(l.quantity),
-        unitPrice: l.price,
-        vatRate: l.vatRate,
-        netAmount: l.net,
-        vatAmount: l.vat,
-        grossAmount: l.gross,
-        priceApproved: checkResults[i].priceApproved
-      }))
-    };
-
-    console.log("DB KAYIT PAYLOAD:", payload);
-
-    alert(
-      `İade Talebi Oluşturuldu\n\nTalep No: ${requestNo}\nDurum: AÇIK`
-    );
-
-    // burada:
-    // fetch("/api/returns", { method: "POST", body: JSON.stringify(payload) })
-  }}
->
-  Son Kaydet
-</button>
-
-        </div>
-      </>
-    );
+  if (!checked) {
+    alert("Devam etmeden önce Kontrol Et çalıştırılmalıdır.");
+    return;
   }
 
-  /* ---------------- MAIN SCREEN ---------------- */
+  console.log("ONCONTINUE VAR MI?", onContinue);
 
+  onContinue({
+    customer,
+    reason,
+    items: items.map((item, i) => ({
+      ...item,
+      ...checkResults[i],
+    })),
+  });
+};
+
+  /* ================= RENDER ================= */
   return (
     <>
       <h2>İade Talebi Oluştur</h2>
 
+      {/* -------- ÜST BİLGİLER -------- */}
       <div style={box}>
         <select value={customer} onChange={(e) => setCustomer(e.target.value)}>
           <option value="">Müşteri seçiniz</option>
@@ -285,7 +178,7 @@ export default function CreateReturn({ products, customers, returnReasons }) {
           <option value="">İade sebebi seçiniz</option>
           {returnReasons.map((r) => (
             <option key={r.id} value={r.id}>
-              {r.id} - {r.name}
+              {r.name}
             </option>
           ))}
         </select>
@@ -293,9 +186,11 @@ export default function CreateReturn({ products, customers, returnReasons }) {
 
       <hr />
 
+      {/* -------- SATIRLAR -------- */}
       {items.map((item, index) => (
         <ReturnItemRow
           key={index}
+          index={index}
           item={item}
           products={products}
           checked={checked}
@@ -305,27 +200,35 @@ export default function CreateReturn({ products, customers, returnReasons }) {
         />
       ))}
 
-      <button onClick={addItem}>➕ Ekleme</button>
+      <button onClick={addItem}>➕ Satır Ekle</button>
 
-      <div style={{ marginTop: 20 }}>
+      {/* -------- ALT AKSİYONLAR -------- */}
+      <div style={{ marginTop: "20px" }}>
         {!checked ? (
           <button onClick={handleCheck}>Kontrol Et</button>
         ) : (
-          <button onClick={handleEdit}>Düzelt</button>
+          <button
+            onClick={() => {
+              setChecked(false);
+              setCheckResults([]);
+            }}
+          >
+            Düzelt
+          </button>
         )}
 
         <button
-          onClick={handleSave}
-          disabled={!allApproved}
-          style={{ marginLeft: 10 }}
+          onClick={handleContinue}
+          style={{ marginLeft: "10px" }}
         >
-          Kaydet
+          Devam Et
         </button>
       </div>
     </>
   );
 }
 
+/* ================= STYLES ================= */
 const box = {
   display: "flex",
   gap: "10px",

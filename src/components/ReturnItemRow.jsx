@@ -5,86 +5,95 @@ export default function ReturnItemRow({
   result,
   onItemChange,
   onResultChange
+  
 }) {
+  const r = result || {};
+
   return (
-    <div style={row}>
-      {/* ÜRÜN */}
+    <div style={{ border: "1px solid #ddd", padding: "10px", marginBottom: "8px" }}>
+      
+      {/* NORMAL GİRİŞ ALANLARI – HER ZAMAN GÖRÜNÜR */}
       <select
-        disabled={checked}
         value={item.product}
         onChange={e => onItemChange("product", e.target.value)}
+        disabled={checked}
       >
-        <option value="">Ürün seç</option>
+        <option value="">Ürün seçiniz</option>
         {products.map(p => (
-          <option key={p.id} value={p.code}>
+          <option key={p.code} value={p.code}>
             {p.code} - {p.name}
           </option>
         ))}
       </select>
 
-      {/* PARTİ */}
       <input
-        disabled={checked}
         placeholder="Parti"
         value={item.lot}
         onChange={e => onItemChange("lot", e.target.value)}
+        disabled={checked}
       />
 
-      {/* ADET */}
       <input
-        disabled={checked}
-        type="number"
         placeholder="Adet"
+        type="number"
         value={item.quantity}
         onChange={e => onItemChange("quantity", e.target.value)}
+        disabled={checked}
       />
 
-      {/* KONTROL SONUÇLARI */}
-      {checked && result && (
-        <div style={{ gridColumn: "1 / -1", marginTop: "8px" }}>
-          {result.message.map((m, i) => (
-            <div key={i}>{m}</div>
+      <input
+        placeholder="Not"
+        value={item.note}
+        onChange={e => onItemChange("note", e.target.value)}
+        disabled={checked}
+      />
+
+      {/* KONTROL SONRASI BİLGİLER */}
+      {checked && (
+        <div style={{ marginTop: "8px", background: "#f9f9f9", padding: "8px" }}>
+          {r.messages?.map((m, i) => (
+            <div key={i}>• {m}</div>
           ))}
 
-          {/* YENİ FİYAT GİR */}
-          {result.approvalRequired && !result.priceApproved && (
-            <div style={{ marginTop: "6px", display: "flex", gap: "8px" }}>
-              <input
-                type="number"
-                placeholder="Yeni fiyat gir"
-                value={result.newPrice}
-                onChange={e =>
-                  onResultChange("newPrice", e.target.value)
-                }
-              />
-              <button
-                onClick={() => {
-                  if (!result.newPrice) {
-                    alert("Yeni fiyat girilmelidir");
-                    return;
-                  }
-                  onResultChange("priceApproved", true);
-                }}
-              >
-                Fiyat OK
-              </button>
-            </div>
-          )}
+          <div style={{ marginTop: "5px" }}>
+            <input
+              type="number"
+              value={r.newPrice || ""}
+              onChange={e => onResultChange("newPrice", e.target.value)}
+            />
+            <span> TRY</span>
+          </div>
 
-          {result.priceApproved && (
-            <div style={{ color: "green", fontWeight: "bold", marginTop: "4px" }}>
-              ✔️ Fiyat onaylandı
-            </div>
+          <div style={{ marginTop: "5px" }}>
+            <button
+              onClick={() => onResultChange("decision", "ACCEPT")}
+              style={{
+                background: r.decision === "ACCEPT" ? "#c8f7c5" : ""
+              }}
+            >
+              Kabul
+            </button>
+
+            <button
+              onClick={() => onResultChange("decision", "REJECT")}
+              style={{
+                marginLeft: "5px",
+                background: r.decision === "REJECT" ? "#f7c5c5" : ""
+              }}
+            >
+              Red
+            </button>
+          </div>
+
+          {r.decision === "REJECT" && (
+            <input
+              placeholder="Red Notu"
+              value={r.rejectNote || ""}
+              onChange={e => onResultChange("rejectNote", e.target.value)}
+            />
           )}
         </div>
       )}
     </div>
   );
 }
-
-const row = {
-  display: "grid",
-  gridTemplateColumns: "2fr 1fr 1fr",
-  gap: "10px",
-  marginBottom: "10px"
-};

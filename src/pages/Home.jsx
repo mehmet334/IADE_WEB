@@ -1,12 +1,10 @@
 export default function Home() {
   return (
     <>
-      <h2>Anasayfa</h2>
+      <h2>İade Yönetim Platformu</h2>
       <p>
-        İade talep giriş platformuna hoş geldiniz.
-        Sol menüden işlem seçebilirsiniz.
-        
-        <br /><br />Daha sonra burada detaylı kılavuz yer alacaktır.
+        Yeni iade talebi oluşturabilir, mevcut iadeleri sorgulayabilir ve
+        durumlarını takip edebilirsiniz.
       </p>
     </>
   );
