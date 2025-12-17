@@ -3,16 +3,33 @@ export default function Sidebar({ setPage }) {
     <aside style={sidebar}>
       <h3>İade Platformu</h3>
 
-        <button onClick={() => setPage("home")} style={btn}>Anasayfa</button>
-        <button onClick={() => setPage("createReturn")} style={btn}>İade Talebi Oluştur</button>
-        <button onClick={() => setPage("newProduct")} style={btn}>Yeni Ürün</button>
-        <button onClick={() => setPage("newCustomer")} style={btn}>Yeni Müşteri</button>
-        <button onClick={() => setPage("newReturnReason")} style={btn}>İade Sebebi Ekle</button> 
-        <button onClick={() => setPage("returnQuery")} style={btn}>
+      <button style={btn} onClick={() => setPage("home")}>
+        Anasayfa
+      </button>
+
+      <button style={btn} onClick={() => setPage("createReturn")}>
+        İade Talebi Oluştur
+      </button>
+
+      <button style={btn} onClick={() => setPage("returnQuery")}>
         İade Sorgulama
-        </button>
+      </button>
+
+      <button style={btn} onClick={() => setPage("newProduct")}>
+        Yeni Ürün
+      </button>
+
+      <button style={btn} onClick={() => setPage("newCustomer")}>
+        Yeni Müşteri
+      </button>
+
+      <button style={btn} onClick={() => setPage("newReturnReason")}>
+        İade Sebebi Ekle
+      </button>
+<button style={btn} onClick={() => setPage("ekolReady")}>
+  Ekole Gönderilebilir İadeler
+</button>
     </aside>
-    
   );
 }
 
@@ -28,6 +45,3 @@ const btn = {
   marginBottom: "10px",
   cursor: "pointer"
 };
-
-
-
